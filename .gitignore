@@ -3,3 +3,23 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# --- bare-metal build output ---
+build/
+
+# Compiler and linker artifacts, wherever they land
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+*.d
+
+# Dumps from manual objdump/size/nm runs
+firmware_*.txt
+
+# --- OS noise ---
+Thumbs.db
+.DS_Store
