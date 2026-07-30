@@ -6,16 +6,16 @@ ENTRY(Reset_Handler)
 /* Highest address of the user mode stack */
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
-_Min_Heap_Size = 0x200; // Required heap
-_Min_Stack_size = 0x400; // Required stack
+_Min_Heap_Size = 0x200; /* Required heap */
+_Min_Stack_size = 0x400; /* Required stack */
 
 /* Memories definition */
 
 MEMORY
 {
     RAM     (xrw) : ORIGIN = 0x20000000, LENGTH = 8k
-    FLASH_VECTAB (rx)   : ORIGIN = 0x08001000, LENGTH 192
-    FLASH (rx) : ORIGIN = ORIGIN(FLASH_VECTAB) + LENGTH(FLASH_VECTAB) = 62k - 32 - LENGTH(FLASH_VECTAB)
+    FLASH_VECTAB (rx)   : ORIGIN = 0x08001000, LENGTH = 192
+    FLASH (rx) : ORIGIN = ORIGIN(FLASH_VECTAB) + LENGTH(FLASH_VECTAB), LENGTH = 62k - 32 - LENGTH(FLASH_VECTAB)
     EEPROM (rx) : ORIGIN = 0x0800F800, LENGTH = 2k
     FILE_NAME (rx) : ORIGIN = ORIGIN(EEPROM) - 32, LENGTH = 32
 }
@@ -26,8 +26,8 @@ SECTIONS
     /* The startup code into FLASH rom type memory */
     .isr_vector :
     {
-        . = ALIGN(4); // 4 byte alignment
-        KEEP(*(.isr_vector)) // Startup Code
+        . = ALIGN(4); /* 4 byte alignment */
+        KEEP(*(.isr_vector)) /* Startup Code */
         . = ALIGN(4);
     } >FLASH_VECTAB
 
@@ -35,24 +35,24 @@ SECTIONS
     .text :
     {
         . = ALIGN(4);
-        *(.text) // .text sections (code)
-        *(.text*) // .text* sections
-        *(.glue_7) // glue arm to thumb code
-        *(.glue_7t) // glue thumb to arm code
+        *(.text) /* .text sections (code) */
+        *(.text*) /* .text* sections */
+        *(.glue_7) /* glue arm to thumb code */
+        *(.glue_7t) /* glue thumb to arm code */
         *(.eh_frame)
 
         KEEP (*(.init))
         KEEP (*(.fini))
 
         . = ALIGN(4);
-        _etext = .; // Global symbols defined at the end of code
+        _etext = .; /* Global symbols defined at the end of code */
     } >FLASH
 
     /* Constant data into FLASH ROM */
     .rodata :
     {
         . = ALIGN(4);
-        *(.rodata) // constants, strings, etc.
+        *(.rodata) /* constants, strings, etc. */
         *(.rodata*)
         . = ALIGN(4);
     } >FLASH
@@ -65,13 +65,13 @@ SECTIONS
 
     .ARM : {
         . = ALIGN(4);
-        __exidx _start = .;
+        __exidx_start = .;
         *(.ARM.exidx*)
         __exidx_end = .;
         . = ALIGN(4);
     } >FLASH
 
-    .preinit_array
+    .preinit_array :
     {
         . = ALIGN(4);
         PROVIDE_HIDDEN (__preinit_array_start = .);
@@ -114,7 +114,7 @@ SECTIONS
     .data :
     {
         . = ALIGN(4);
-        _sdata = .; // Global symbol at data start
+        _sdata = .; /* Global symbol at data start */
         *(.data)
         *(.data*)
         . = ALIGN(4);
@@ -138,7 +138,7 @@ SECTIONS
     } >RAM
 
     /* Heap section used to check if there is enough RAM left */
-    ._user_heap_stack:
+    ._user_heap_stack :
     {
         . = ALIGN(8);
         PROVIDE ( end = . );

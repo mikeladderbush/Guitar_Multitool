@@ -1,0 +1,154 @@
+// Summary of text/data/bss
+arm-none-eabi-size firmware.elf
+
+// Per-section summary in hex
+arm-none-eabi-size -A -x firmware.elf
+
+// GNU-style breakdown
+arm-none-eabi-size -G firmware.elf
+
+// Section headers with VMA and LMA
+objdump -h firmware.elf
+
+// Disassemble executable sections
+objdump -d firmware.elf
+
+// Disassemble everything
+objdump -D firmware.elf
+
+// Disassemble with interleaved C source (needs -g)
+objdump -S firmware.elf
+
+// Hex dump of one section
+objdump -s -j [section name] firmware.elf
+
+// Symbol table
+objdump -t firmware.elf
+
+// All headers, everything
+objdump -x firmware.elf
+
+// File header summary, entry point
+objdump -f firmware.elf
+
+// Relocations
+objdump -r firmware.elf
+
+// Just one function
+objdump --disassemble=[function name] firmware.elf
+
+// address range
+objdump -d --start-address=0x80000000 --stop-address=0x80000100 firmware.elf
+
+// Disassembly with source line numbers
+objdump -d -l firmware.elf
+
+// Force Thumb decoding if output looks like garbage
+objdump -d -Mforce-thumb firmware.elf
+
+// Demangle C++ names, add to any above commands
+objdump -C ...
+
+/* Symbols */
+// All symbols
+nm firmware.elf
+
+// Sorted by address, read memory layout top to bottom
+nm -n firmware.elf
+
+// Sorted by size
+nm -S --size-sort firmware.elf
+
+// Undefined symbols only
+nm -u firmware.elf
+
+// External symbols only
+nm -g firmware.elf
+
+// Demangled
+nm -C firmware.elf
+
+/* Symbol type letters */
+
+T/t = code, .text - uppercase global, lowercase local
+D/d = .data
+B/b = .bss
+R/r = read only, .rodata
+U = undefined
+W/w = weak
+A = absolute
+
+/* readelf, more detail than objdump */
+// ELF header, entry point, machine type
+readelf -h firmware.elf
+
+// Section headers
+readelf -S firmware.elf
+
+// Program headers, what actually gets flashed
+readelf -l firmware.elf
+
+// Symbol table
+readelf -s firmware.elf
+
+// hex dump a section
+readelf -x .[section name] firmware.elf
+
+// everything
+readelf -a firmware.elf
+
+/* Format conversion */
+// Raw binary for flashing
+objcopy -O binary firmware.elf firmware.bin
+
+// Intel HEX
+objcopy -O ihex firmware.elf firmware.hex
+
+// Motorola S-record
+objcopy -O srec firmware.elf firmware.srec
+
+// Extract one section
+objcopy --only-section=.text firmware.elf out.bin
+
+// Strip a section
+objcopy --remove-section=.comment firmware.elf out.elf
+
+/* address -> source location */
+// Use for hardfaults!!
+arm-none-eabi-addr2line -f -C -e firmware.elf 0x080001a4
+
+
+
+/* GDB for the board itself, gdb-multiarch not arm-none-eabi-gdb */
+// Connect to OPENOCD
+target extended-remote localhost:3333
+
+// Reset and stop before the first instruction
+monitor reset halt
+
+// Flash the ELF
+load
+
+// All core registers
+info registers
+
+// One Register in hex
+p/x $sp / p/x $pc
+
+// Examine 16 words in hex, read the vector table live
+x/16xw 0x08000000
+
+// Next 8 instructions
+x/8i $pc
+
+// breakpoint by name
+b Reset_Handler
+
+// Single instruction
+stepi / si
+
+// Backtrace
+bt
+
+// local variables
+info locals

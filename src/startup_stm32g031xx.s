@@ -29,8 +29,7 @@ Reset_Handler:
     ldr r0, =_estack // load the zero register with the stack pointer
     mov sp, r0       // set stack pointer to r0
 
-/* Initialize system clock */
-    bl SystemInit
+/* Default documentation calls for initialization of system clock here, I've decided to relay on the default chip clock instead. */
 
 /* Copy data segment initializers from flash to SRAM */
     ldr r0, =_sdata
@@ -66,8 +65,6 @@ LoopFillZerobss:
     cmp r2, r4
     bcc FillZerobss
 
-/* static constructor calls for libc */
-    bl __libc_init_array
 /* calls the application at entry point main */
     bl main
 
@@ -75,7 +72,7 @@ LoopForever:
     b LoopForever
 
 /* Debug metadata for recording the Reset_Handler size. */
-.size Reset_Handler, .-Resent_Handler
+.size Reset_Handler, .-Reset_Handler
 
 /* Code that gets called for processor receiving unexpected interrupt. Enters an infinite loop and preserves the system state for debugger examination */
 
@@ -118,12 +115,12 @@ g_pfnVectors:
     .word 0                   // Reserved
     .word DMA1_Channel1_IRQHandler // DMA1 Channel 1
     .word DMA1_Channel2_3_IRQHandler // DMA1 Channel 2 and 3
-    .word DMA1_ch4_5_DMAMUX1_OVR_IRQHandler // DMA1 Channel 4 to 5, DMAMUX1 overrun
+    .word DMA1_Ch4_5_DMAMUX1_OVR_IRQHandler // DMA1 Channel 4 to 5, DMAMUX1 overrun
     .word ADC1_IRQHandler // ADC1
     .word TIM1_BRK_UP_TRG_COM_IRQHandler // TIM1 Break, Update, Trigger and Commutation
     .word TIM1_CC_IRQHandler // TIM1 Capture Compare
     .word TIM2_IRQHandler // TIM2
-    .word TIM3_IRGHandler // TIM3
+    .word TIM3_IRQHandler // TIM3
     .word LPTIM1_IRQHandler // LPTIM1
     .word LPTIM2_IRQHandler // LPTIM2
     .word TIM14_IRQHandler // TIM14
@@ -136,7 +133,7 @@ g_pfnVectors:
     .word SPI2_IRQHandler // SPI2
     .word USART1_IRQHandler // USART1
     .word USART2_IRQHandler // USART2
-    .word LPUART1_IRGHandler // LPUART1
+    .word LPUART1_IRQHandler // LPUART1
     .word 0                 // Reserved
 
 
