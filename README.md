@@ -8,9 +8,9 @@ layers are deliberately avoided even where they'd be faster.
 
 ## Status
 
-**Startup skeleton works.** Vector table, reset handler, and linker script build
-and verify correctly. No peripherals are driven yet, and no hardware has arrived
-to run it on.
+**Blinking on hardware.** Vector table, reset handler, and linker script verified
+on a NUCLEO-G031K8, with GPIO driven by hand-written register definitions. Flash
+and debug work over SWD via OpenOCD and GDB.
 
 | Stage | State |
 |---|---|
