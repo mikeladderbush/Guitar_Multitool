@@ -17,7 +17,7 @@ to run it on.
 | Toolchain + build | done |
 | Linker script, vector table, reset handler | done, verified |
 | `.data` copy / `.bss` zero | done, verified via LMA/VMA |
-| Blink (GPIO) | not started |
+| Blink (GPIO) | done — PC6 via RCC_IOPENR / MODER / BSRR |
 | I2C + SSD1306 display | not started |
 | Application logic | not started |
 

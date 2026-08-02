@@ -10,13 +10,28 @@ arm-none-eabi-gcc -mcpu=cortex-m0plus -mthumb -ffreestanding -nostdlib -nostartf
 P.S. commas need quotes in PowerShell
 */
 
-int data_placeholder = 1; // .data test for debugging
-int bss_placeholder; // .bss test for debugging
+#include <stdint.h>
+
+#define RCC_IOPENR_REG (*(volatile uint32_t *)0x40021034)
+#define GPIOC_MODER_REG (*(volatile uint32_t *)0x50000800)
+#define GPIOC_BSRR_REG (*(volatile uint32_t *)0x50000818)
+
 
 int main(void){
 
-    data_placeholder = data_placeholder + 1;
-    bss_placeholder = bss_placeholder + 1;
+    RCC_IOPENR_REG |= (0b1u << 2); // Sets bit for GPIOC
 
-    for(;;){}
+    GPIOC_MODER_REG &= ~(0b11u << 12); // Clears 12-13 for pin 6.
+    GPIOC_MODER_REG |= (0b01u << 12); // Sets 12-13
+
+    for(;;){
+        
+        GPIOC_BSRR_REG = (0b1u << 6); // LED on, Drives PC6 high
+        
+        for(volatile int i = 0; i < 20000; i++){ } // Delay
+        
+        GPIOC_BSRR_REG = (0b1u << 22); // LED off, Drives low
+        
+        for(volatile int i = 0; i < 20000; i++){ }
+    }
 }
