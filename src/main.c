@@ -16,6 +16,15 @@ uint8_t cursor_changed = 0;
 uint8_t frame_buffer[384]; // For mapping display bytes to screen.
 uint8_t exit_prog = 0;
 
+struct Settings {
+
+    uint8_t note_speed;
+    uint8_t prog_speed;
+
+};
+
+typedef struct Settings Settings;
+
 void set_pixel(uint8_t x, uint8_t y, uint8_t on){
     // Add gates for out of bounds/incorrect params
     // Adds a pixel with from 6,64 to the frame buffer.
@@ -37,19 +46,48 @@ void draw_string(char characters[], uint8_t x, uint8_t y){
     // Loop over characters using draw_char for each.
 }
 
+typedef enum { A, A_SHARP, B_FLAT, B, C, C_SHARP, D_FLAT, D, D_SHARP, E_FLAT, E, F, F_SHARP, G_FLAT, G, last} NOTES;
+
+/*
+
+    Randomness generator.
+
+*/
+NOTES generate_note(){
+
+    /*
+    
+        1. Enable ADC clock: in RCC
+        2. Enable the ADC's internal voltage regulator
+        3. Run calibration, set calibration bit, poll until ready flag.
+        4. Enable the ADC.
+        5. Select the channel
+        6. Set sampling time.
+        7. Start a conversion.
+        8. Poll the end-of-conversion flag
+        9. Read the data register.
+    
+    */ 
+
+    return last;
+}
+
 /*
 
     This runs the note test functionality until a user exit input.
 
 */
-void note_test(){
+void note_test(Settings* settings){
     // Go back on exit pressed.
+
     for (;;){
         uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
         if (now_button3 == 0 && prev_button3 == 1){
             exit_prog = 1;
         }
         prev_button3 = now_button3;
+
+
 
         if(exit_prog == 1){
             exit_prog = 0;
@@ -63,7 +101,7 @@ void note_test(){
     Functionality for chord progressions until user exit.
 
 */
-void chord_progression(){
+void chord_progression(Settings* settings){
     // Go back on exit pressed.
     for (;;){
         uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
@@ -86,7 +124,7 @@ void chord_progression(){
     Will change a global settings object eventually.
 
 */
-void settings(){ 
+void set_settings(Settings* settings){ 
     // Go back on exit pressed.
     for (;;){
         uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
@@ -104,6 +142,8 @@ void settings(){
 
 
 int main(void){
+
+    Settings* settings;
 
     // PB6 and PB9 are I2C1_SCL and I2C1_SDA respectively.
 
@@ -157,13 +197,13 @@ int main(void){
             selection = 0;
             switch (cursor){
             case 0:
-                note_test();
+                note_test(settings);
                 break;
             case 1:
-                chord_progression();
+                chord_progression(settings);
                 break;
             case 2:
-                settings();
+                set_settings(settings);
                 break;
             }
         } 
