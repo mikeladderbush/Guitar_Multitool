@@ -150,7 +150,7 @@ void draw_string(char characters[], uint8_t x, uint8_t y){
 *********************************************************************************************
 */
 typedef enum { A, A_SHARP, B_FLAT, B, C, C_SHARP, D_FLAT, D, D_SHARP, E_FLAT, E, F, F_SHARP, G_FLAT, G} NOTES;
-const char *note_names[15] = {"A", "A#", "Bb", "C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G"};
+const char *note_names[15] = {"A", "A#", "Bb", "B", "C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G"};
 const char* enum_to_string(NOTES note){
     return note_names[note];
 }
