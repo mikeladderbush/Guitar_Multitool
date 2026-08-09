@@ -1,6 +1,15 @@
 #include <stdint.h>
 
 #define RCC_IOPENR_REG (*(volatile uint32_t *)0x40021034)
+#define RCC_APBENR2 (*(volatile uint32_t *)0x40021040)
+
+#define ADC_CR (*(volatile uint32_t*)0x40012408)
+#define ADC_CHSELR (*(volatile uint32_t*)0x40012428)
+#define ADC_SMPR (*(volatile uint32_t*)0x40012414)
+#define ADC_ISR (*(volatile uint32_t*)0x40012400)
+#define ADC_DR (*(volatile uint32_t*)0x40012440)
+
+#define GPIOA_MODER_REG (*(volatile uint32_t*)0x50000000)
 
 #define GPIOB_MODER_REG (*(volatile uint32_t *)0x50000400)
 #define GPIOB_BSRR_REG (*(volatile uint32_t *)0x50000418)
@@ -15,137 +24,20 @@ uint8_t prev_button3 = 1;
 uint8_t cursor_changed = 0;
 uint8_t frame_buffer[384]; // For mapping display bytes to screen.
 uint8_t exit_prog = 0;
+uint32_t rng_state;
 
-struct Settings {
 
-    uint8_t note_speed;
-    uint8_t prog_speed;
-
-};
-
-typedef struct Settings Settings;
-
-void set_pixel(uint8_t x, uint8_t y, uint8_t on){
-    // Add gates for out of bounds/incorrect params
-    // Adds a pixel with from 6,64 to the frame buffer.
-}
-
-void flush_buffer(){
-    // push buffer to the I2C
-}
-
-void clear_buffer(){
-    for (int i = 0; i < 384; i++) frame_buffer[i] = 0;
-}
-
-void draw_char(uint8_t char_num, uint8_t x, uint8_t y){
-    // uses set_pixel() in a loop
-}
-
-void draw_string(char characters[], uint8_t x, uint8_t y){
-    // Loop over characters using draw_char for each.
-}
-
-typedef enum { A, A_SHARP, B_FLAT, B, C, C_SHARP, D_FLAT, D, D_SHARP, E_FLAT, E, F, F_SHARP, G_FLAT, G, last} NOTES;
 
 /*
+*********************************************************************************************
 
-    Randomness generator.
+        Button initialization.
+        PB6 and PB9 are I2C1_SCL and I2C1_SDA respectively.
 
+*********************************************************************************************
 */
-NOTES generate_note(){
+void init_buttons(){
 
-    /*
-    
-        1. Enable ADC clock: in RCC
-        2. Enable the ADC's internal voltage regulator
-        3. Run calibration, set calibration bit, poll until ready flag.
-        4. Enable the ADC.
-        5. Select the channel
-        6. Set sampling time.
-        7. Start a conversion.
-        8. Poll the end-of-conversion flag
-        9. Read the data register.
-    
-    */ 
-
-    return last;
-}
-
-/*
-
-    This runs the note test functionality until a user exit input.
-
-*/
-void note_test(Settings* settings){
-    // Go back on exit pressed.
-
-    for (;;){
-        uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
-        if (now_button3 == 0 && prev_button3 == 1){
-            exit_prog = 1;
-        }
-        prev_button3 = now_button3;
-
-
-
-        if(exit_prog == 1){
-            exit_prog = 0;
-            return;
-        }
-    }
-}
-
-/*
-
-    Functionality for chord progressions until user exit.
-
-*/
-void chord_progression(Settings* settings){
-    // Go back on exit pressed.
-    for (;;){
-        uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
-        if (now_button3 == 0 && prev_button3 == 1){
-            exit_prog = 1;
-        }
-        prev_button3 = now_button3;
-
-        if(exit_prog == 1){
-            exit_prog = 0;
-            return;
-        }
-    }
-}
-
-/*
-
-    Settings
-    
-    Will change a global settings object eventually.
-
-*/
-void set_settings(Settings* settings){ 
-    // Go back on exit pressed.
-    for (;;){
-        uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
-        if (now_button3 == 0 && prev_button3 == 1){
-            exit_prog = 1;
-        }
-        prev_button3 = now_button3;
-
-        if(exit_prog == 1){
-            exit_prog = 0;
-            return;
-        }
-    } 
-}
-
-
-int main(void){
-
-    Settings* settings;
-
-    // PB6 and PB9 are I2C1_SCL and I2C1_SDA respectively.
 
     RCC_IOPENR_REG |= (0b1u << 1); // Sets bit for GPIOB
 
@@ -160,8 +52,190 @@ int main(void){
     GPIOB_PUPDR_REG |= (0b01u << 2); // set pull-up on pin 1 
     GPIOB_PUPDR_REG |= (0b01u << 4); // set pull-up on pin 2
 
-    for(;;){
+}
 
+
+
+/*
+*********************************************************************************************
+
+    Initialization and sampling of ADC for randomness.
+
+*********************************************************************************************
+*/
+void seed_rng(){
+        
+    RCC_IOPENR_REG |= (0b1u << 0);
+
+    RCC_APBENR2 |= (0b1u << 20);
+
+    GPIOA_MODER_REG &= ~(0b11u << 0); // Clear and set GPIOA PA0 to analog.
+    GPIOA_MODER_REG |= (0b11u << 0);
+
+    ADC_CR |= (0b1u << 1); // ADC Disabled
+    ADC_CR &= ~(0b1u << 0);
+    ADC_CR |= (0b1u << 28); // ADC Regen
+
+    for (volatile uint16_t i = 0; i < 400; i++){}
+    ADC_CR |= (0b1u << 31); // ADC Calibrate
+    while ((ADC_CR >> 31) & 0b1u){} // Spin until calibrate flag is finished.
+    ADC_CR |= (0b1u << 0); // ADC Enabled
+
+    while (((ADC_ISR >> 0) & 0b1u) == 0){} // Wait for ready flag.
+
+    ADC_CHSELR |= (0b1u << 0); // Channel Selection (Channel 0)
+
+    ADC_SMPR &= ~(0b111u << 0); // Set sample rate in sampler to 1.5 ADC clock cycles.
+    ADC_SMPR &= ~(0b1u << 8); // Set channel 0 sample selection to SMP1
+
+    uint32_t accumulated_bits;
+
+    for (uint8_t i = 0; i < 32; i++){
+
+        ADC_CR |= (0b1u << 2); // ADC Start
+
+        while(((ADC_ISR >> 2) & 0b1u) == 0){} // Wait until EOC flag is set
+
+        accumulated_bits = (accumulated_bits << 1) | (ADC_DR & 0b1u); // Shift accumulated bits and then set to ADC_DR value.
+    }
+
+    rng_state = accumulated_bits;
+
+}
+
+uint32_t rng_next(void) {
+    rng_state ^= rng_state << 13;
+    rng_state ^= rng_state >> 17;
+    rng_state ^= rng_state << 5;
+    return rng_state;
+}
+
+
+
+/*
+*********************************************************************************************
+
+    Tools for drawing to the display.
+
+*********************************************************************************************
+*/
+void set_pixel(uint8_t x, uint8_t y, uint8_t on){
+    // TODO: Add gates for out of bounds/incorrect params
+    // TODO: Adds a pixel with from 6,64 to the frame buffer.
+}
+
+void flush_buffer(){
+    // TODO: push buffer to the I2C
+}
+
+void clear_buffer(){
+    for (int i = 0; i < 384; i++) frame_buffer[i] = 0;
+}
+
+void draw_char(uint8_t char_num, uint8_t x, uint8_t y){
+    // TODO: uses set_pixel() in a loop
+}
+
+void draw_string(char characters[], uint8_t x, uint8_t y){
+    // TODO: Loop over characters using draw_char for each.
+}
+
+
+
+/*
+*********************************************************************************************
+
+    Random note generation.
+
+*********************************************************************************************
+*/
+typedef enum { A, A_SHARP, B_FLAT, B, C, C_SHARP, D_FLAT, D, D_SHARP, E_FLAT, E, F, F_SHARP, G_FLAT, G} NOTES;
+const char *note_names[15] = {"A", "A#", "Bb", "C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G"};
+const char* enum_to_string(NOTES note){
+    return note_names[note];
+}
+NOTES generate_note(){
+    return (NOTES)(rng_next() % 15);
+}
+
+
+
+/*
+*********************************************************************************************
+
+    Functionality options selected through the main menu.
+
+*********************************************************************************************
+*/
+
+struct Settings {
+
+    uint8_t note_speed;
+    uint8_t prog_speed;
+
+};
+
+typedef struct Settings Settings;
+
+void note_test(Settings* settings){
+    NOTES note;
+    const char* note_string;
+
+    for (;;){
+        uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
+        if (now_button3 == 0 && prev_button3 == 1){
+            exit_prog = 1;
+        }
+        prev_button3 = now_button3;
+
+        note = generate_note();
+        note_string = enum_to_string(note);
+        // TODO: draw_string(note_string, x, y)
+
+        if(exit_prog == 1){
+            exit_prog = 0;
+            return;
+        }
+    }
+}
+
+void chord_progression(Settings* settings){
+    for (;;){
+        uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
+        if (now_button3 == 0 && prev_button3 == 1){
+            exit_prog = 1;
+        }
+        prev_button3 = now_button3;
+
+        if(exit_prog == 1){
+            exit_prog = 0;
+            return;
+        }
+    }
+}
+
+void set_settings(Settings* settings){ 
+    for (;;){
+        uint8_t now_button3 = (GPIOB_IDR_REG >> 2) & 0b1u;
+        if (now_button3 == 0 && prev_button3 == 1){
+            exit_prog = 1;
+        }
+        prev_button3 = now_button3;
+
+        if(exit_prog == 1){
+            exit_prog = 0;
+            return;
+        }
+    } 
+}
+
+int main(void){
+
+    init_buttons();
+    seed_rng();
+    Settings* settings;
+
+    for(;;){
         uint8_t now_button1 = (GPIOB_IDR_REG >> 0) & 0b1u;
         if (now_button1 == 0 && prev_button1 == 1){
             cursor++;
@@ -175,13 +249,13 @@ int main(void){
             clear_buffer();
             switch(cursor){
                 case 0:
-                    // draw_string("Note Test")
+                    // TODO: draw_string("Note Test")
                     break;
                 case 1:
-                    // draw_string("Progression")
+                    // TODO: draw_string("Progression")
                     break;
                 case 2:
-                    // draw_string("Settings")
+                    // TODO: draw_string("Settings")
                     break;
             }
             flush_buffer();
@@ -213,7 +287,7 @@ int main(void){
             exit_prog = 1;
         }
         prev_button3 = now_button3;
-        // Button 3 noop for now.
+        // TODO: Button 3 noop for now.
     }
 }
 
