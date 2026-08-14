@@ -1,20 +1,28 @@
 #include <stdint.h>
 
-#define RCC_IOPENR_REG (*(volatile uint32_t *)0x40021034)
-#define RCC_APBENR2 (*(volatile uint32_t *)0x40021040)
+#define RCC_IOPENR_REG (*(volatile uint32_t*)0x40021034)
+#define RCC_APBENR1_REG (*(volatile uint32_t*)0x4002103C)
+#define RCC_APBENR2_REG (*(volatile uint32_t*)0x40021040)
 
-#define ADC_CR (*(volatile uint32_t*)0x40012408)
-#define ADC_CHSELR (*(volatile uint32_t*)0x40012428)
-#define ADC_SMPR (*(volatile uint32_t*)0x40012414)
-#define ADC_ISR (*(volatile uint32_t*)0x40012400)
-#define ADC_DR (*(volatile uint32_t*)0x40012440)
+#define ADC_CR_REG (*(volatile uint32_t*)0x40012408)
+#define ADC_CHSELR_REG (*(volatile uint32_t*)0x40012428)
+#define ADC_SMPR_REG (*(volatile uint32_t*)0x40012414)
+#define ADC_ISR_REG (*(volatile uint32_t*)0x40012400)
+#define ADC_DR_REG (*(volatile uint32_t*)0x40012440)
+
+#define I2C_CR1_REG (*(volatile uint32_t*)0x40005400)
+#define I2C_CR2_REG (*(volatile uint32_t*)0x40005404)
+#define I2C_TIMINGR_REG (*(volatile uint32_t*)0x40005410)
 
 #define GPIOA_MODER_REG (*(volatile uint32_t*)0x50000000)
 
-#define GPIOB_MODER_REG (*(volatile uint32_t *)0x50000400)
-#define GPIOB_BSRR_REG (*(volatile uint32_t *)0x50000418)
-#define GPIOB_PUPDR_REG (*(volatile uint32_t *)0x5000040C)
-#define GPIOB_IDR_REG (*(volatile uint32_t *)0x50000410)
+#define GPIOB_AFRL_REG (*(volatile uint32_t*)0x50000420) // Alt function PB6
+#define GPIOB_AFRH_REG (*(volatile uint32_t*)0x50000424) // Alt function PB9
+#define GPIOB_OTYPER_REG (*(volatile uint32_t*)0x50000404)
+#define GPIOB_MODER_REG (*(volatile uint32_t*)0x50000400)
+#define GPIOB_BSRR_REG (*(volatile uint32_t*)0x50000418)
+#define GPIOB_PUPDR_REG (*(volatile uint32_t*)0x5000040C)
+#define GPIOB_IDR_REG (*(volatile uint32_t*)0x50000410)
 
 uint8_t cursor = 0; // Initial cursor state.
 uint8_t selection = 0; // Selection boolean.
@@ -34,10 +42,10 @@ uint32_t rng_state;
         Button initialization.
         PB6 and PB9 are I2C1_SCL and I2C1_SDA respectively.
 
+
 *********************************************************************************************
 */
 void init_buttons(){
-
 
     RCC_IOPENR_REG |= (0b1u << 1); // Sets bit for GPIOB
 
@@ -67,36 +75,36 @@ void seed_rng(){
         
     RCC_IOPENR_REG |= (0b1u << 0);
 
-    RCC_APBENR2 |= (0b1u << 20);
+    RCC_APBENR2_REG |= (0b1u << 20);
 
     GPIOA_MODER_REG &= ~(0b11u << 0); // Clear and set GPIOA PA0 to analog.
     GPIOA_MODER_REG |= (0b11u << 0);
 
-    ADC_CR |= (0b1u << 1); // ADC Disabled
-    ADC_CR &= ~(0b1u << 0);
-    ADC_CR |= (0b1u << 28); // ADC Regen
+    ADC_CR_REG |= (0b1u << 1); // ADC Disabled
+    ADC_CR_REG &= ~(0b1u << 0);
+    ADC_CR_REG |= (0b1u << 28); // ADC Regen
 
     for (volatile uint16_t i = 0; i < 400; i++){}
-    ADC_CR |= (0b1u << 31); // ADC Calibrate
-    while ((ADC_CR >> 31) & 0b1u){} // Spin until calibrate flag is finished.
-    ADC_CR |= (0b1u << 0); // ADC Enabled
+    ADC_CR_REG |= (0b1u << 31); // ADC Calibrate
+    while ((ADC_CR_REG >> 31) & 0b1u){} // Spin until calibrate flag is finished.
+    ADC_CR_REG |= (0b1u << 0); // ADC Enabled
 
-    while (((ADC_ISR >> 0) & 0b1u) == 0){} // Wait for ready flag.
+    while (((ADC_ISR_REG >> 0) & 0b1u) == 0){} // Wait for ready flag.
 
-    ADC_CHSELR |= (0b1u << 0); // Channel Selection (Channel 0)
+    ADC_CHSELR_REG |= (0b1u << 0); // Channel Selection (Channel 0)
 
-    ADC_SMPR &= ~(0b111u << 0); // Set sample rate in sampler to 1.5 ADC clock cycles.
-    ADC_SMPR &= ~(0b1u << 8); // Set channel 0 sample selection to SMP1
+    ADC_SMPR_REG &= ~(0b111u << 0); // Set sample rate in sampler to 1.5 ADC clock cycles.
+    ADC_SMPR_REG &= ~(0b1u << 8); // Set channel 0 sample selection to SMP1
 
     uint32_t accumulated_bits;
 
     for (uint8_t i = 0; i < 32; i++){
 
-        ADC_CR |= (0b1u << 2); // ADC Start
+        ADC_CR_REG |= (0b1u << 2); // ADC Start
 
-        while(((ADC_ISR >> 2) & 0b1u) == 0){} // Wait until EOC flag is set
+        while(((ADC_ISR_REG >> 2) & 0b1u) == 0){} // Wait until EOC flag is set
 
-        accumulated_bits = (accumulated_bits << 1) | (ADC_DR & 0b1u); // Shift accumulated bits and then set to ADC_DR value.
+        accumulated_bits = (accumulated_bits << 1) | (ADC_DR_REG & 0b1u); // Shift accumulated bits and then set to ADC_DR value.
     }
 
     rng_state = accumulated_bits;
@@ -117,8 +125,47 @@ uint32_t rng_next(void) {
 
     Tools for drawing to the display.
 
+    I2C Timing Calculations:
+        Based on generic timing example for 100kHz standard mode
+        SCL period = (SCLL + 1 + SCLH + 1) * (PRESC + 1) / 16 MHz
+        PRESC = 0x3
+        SCLL + 1 = 20 = 0x13 + 1
+        SCLH + 1 = 20 = 0x13 allowed for time rise = 0x0F
+        SDADEL = 0x2
+        SCLDEL = 0x4
+
 *********************************************************************************************
 */
+
+void init_display_conn(){
+
+    RCC_APBENR1_REG |= (0b1u << 21); // Set I2C clock on
+
+    I2C_CR1_REG &= ~(0b1u << 0); // Set PE disabled
+    I2C_TIMINGR_REG = 
+                        (0x3u << 28) // Hex PRESC = 3, 250ns tick
+                    |   (0x4u << 20) // SCLDEL = 4, 4 ticks before rise
+                    |   (0x2u << 16) // SDADEL = 2, 2 ticks after fall
+                    |   (0x0Fu << 8) // SCLH = 15, 16 ticks high
+                    |   (0x13u << 0); // SCLL = 19, 20 ticks low
+
+    GPIOB_OTYPER_REG |= (0b1u << 6);
+    GPIOB_OTYPER_REG |= (0b1u << 9);
+
+    GPIOB_AFRL_REG &= ~(0b1111u << 24); // PB6 alt function AF6
+    GPIOB_AFRH_REG &= ~(0b1111u << 4); // PB9 alt function AF6
+    GPIOB_AFRL_REG |= (0b0110u << 24); // I2C1_SCL
+    GPIOB_AFRH_REG |= (0b0110u << 4); // I2C1_SDA
+
+    GPIOB_MODER_REG &= ~(0b11u << 12);
+    GPIOB_MODER_REG &= ~(0b11u << 18);
+    GPIOB_MODER_REG |= (0b10u << 12); // Alt for PB6
+    GPIOB_MODER_REG |= (0b10u << 18); // Alt for PB9
+
+    I2C_CR1_REG |= (0b1u << 0); // Enable PE
+
+}
+
 void set_pixel(uint8_t x, uint8_t y, uint8_t on){
     // TODO: Add gates for out of bounds/incorrect params
     // TODO: Adds a pixel with from 6,64 to the frame buffer.
@@ -232,6 +279,7 @@ void set_settings(Settings* settings){
 int main(void){
 
     init_buttons();
+    init_display_conn();
     seed_rng();
     Settings* settings;
 
