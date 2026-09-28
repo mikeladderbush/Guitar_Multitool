@@ -80,8 +80,6 @@ void seed_rng(){
     GPIOA_MODER_REG &= ~(0b11u << 0); // Clear and set GPIOA PA0 to analog.
     GPIOA_MODER_REG |= (0b11u << 0);
 
-    ADC_CR_REG |= (0b1u << 1); // ADC Disabled
-    ADC_CR_REG &= ~(0b1u << 0);
     ADC_CR_REG |= (0b1u << 28); // ADC Regen
 
     for (volatile uint16_t i = 0; i < 400; i++){}
@@ -136,7 +134,6 @@ uint32_t rng_next(void) {
 
 *********************************************************************************************
 */
-
 void init_display_conn(){
 
     RCC_APBENR1_REG |= (0b1u << 21); // Set I2C clock on
@@ -163,6 +160,11 @@ void init_display_conn(){
     GPIOB_MODER_REG |= (0b10u << 18); // Alt for PB9
 
     I2C_CR1_REG |= (0b1u << 0); // Enable PE
+    I2C_CR2_REG |= (0x3C << 1); // Set CR2 Slave Address
+    I2C_CR2_REG &= ~(0b1u << 10); // Set to read
+    I2C_CR2_REG &= ~(0b11111111 << 16); // Set bytes to 0 for ACK test
+    I2C_CR2_REG |= (0b1u << 25); // Auto-end to 1
+    I2C_CR2_REG |= (0b1u << 13); // Start
 
 }
 
@@ -214,7 +216,6 @@ NOTES generate_note(){
 
 *********************************************************************************************
 */
-
 struct Settings {
 
     uint8_t note_speed;
