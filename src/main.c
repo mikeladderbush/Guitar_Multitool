@@ -13,6 +13,8 @@
 #define I2C_CR1_REG (*(volatile uint32_t*)0x40005400)
 #define I2C_CR2_REG (*(volatile uint32_t*)0x40005404)
 #define I2C_TIMINGR_REG (*(volatile uint32_t*)0x40005410)
+#define I2C_TXDR_REG (*(volatile uint32_t*)0x40005428)
+#define I2C_ISR_REG (*(volatile uint32_t*)0x40005418)
 
 #define GPIOA_MODER_REG (*(volatile uint32_t*)0x50000000)
 
@@ -132,6 +134,16 @@ uint32_t rng_next(void) {
         SDADEL = 0x2
         SCLDEL = 0x4
 
+    GDB Testing Tools:
+        Setting the PE bit on the I2C_CR1 Register to enable the I2C peripheral:
+            0x40005400 = 1
+        Clear the NACKF and STOPF flags from the I2C_ICR Register:
+            0x4000541C = 0x30
+        Describe and launch transfer on the I2C_CR2 register:
+            0x40005404 = 0x02002078
+        Read the result from I2C_ISR:
+            read 0x40005418
+
 *********************************************************************************************
 */
 void init_display_conn(){
@@ -160,11 +172,19 @@ void init_display_conn(){
     GPIOB_MODER_REG |= (0b10u << 18); // Alt for PB9
 
     I2C_CR1_REG |= (0b1u << 0); // Enable PE
-    I2C_CR2_REG |= (0x3C << 1); // Set CR2 Slave Address
-    I2C_CR2_REG &= ~(0b1u << 10); // Set to read
-    I2C_CR2_REG &= ~(0b11111111 << 16); // Set bytes to 0 for ACK test
-    I2C_CR2_REG |= (0b1u << 25); // Auto-end to 1
-    I2C_CR2_REG |= (0b1u << 13); // Start
+    I2C_CR2_REG = 
+                    (0x3C << 1) // Set CR2 Slave Address
+                |   (0b1u << 10) // Set to read
+                |   (0b11111111u << 16) // Set NBYTES for init check
+                |   (0b1u << 25) // Auto-end to 1
+                |   (0b1u << 13); // Start
+
+    while ((I2C_ISR_REG >> 1) & 0b1u){
+        // Push check with screen flash to display
+        I2C_TXDR_REG |= (); // Turn the charge pump on first
+        // Then turn on the display
+        // Then turn on all display pixels for init test
+    } 
 
 }
 
