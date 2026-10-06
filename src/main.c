@@ -144,6 +144,17 @@ uint32_t rng_next(void) {
         Read the result from I2C_ISR:
             read 0x40005418
 
+    SSD1306 Charge Pump requires two commands to be activated:
+        From SSD1306 Manual, Solomon Systech
+        "
+        Note
+            (1) The Charge Pump must be
+            enabled by the following command:
+            8Dh ; Charge Pump Setting
+            14h ; Enable Charge Pump
+            AFh; Display ON
+        "
+
 *********************************************************************************************
 */
 void init_display_conn(){
@@ -179,12 +190,12 @@ void init_display_conn(){
                 |   (0b1u << 25) // Auto-end to 1
                 |   (0b1u << 13); // Start
 
-    while ((I2C_ISR_REG >> 1) & 0b1u){
-        // Push check with screen flash to display
-        I2C_TXDR_REG |= (); // Turn the charge pump on first
-        // Then turn on the display
-        // Then turn on all display pixels for init test
-    } 
+    const uint8_t init_bytes[] = { 0x00, 0x8D, 0x14, 0xAF, 0xA5 };
+    for (int i = 0; i < init_bytes; i++){
+        while ((I2C_ISR_REG >> 0 & 0b1u) == 0){} 
+        // See documentation above for charge pump explanation.
+        I2C_TXDR_REG = init_bytes[i];
+    }
 
 }
 
