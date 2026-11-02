@@ -32,6 +32,8 @@ uint8_t prev_button1 = 1;
 uint8_t prev_button2 = 1;
 uint8_t prev_button3 = 1;
 uint8_t cursor_changed = 0;
+
+__attribute__((section(".cbuf"), aligned(4)))
 uint8_t frame_buffer[384]; // For mapping display bytes to screen.
 uint8_t exit_prog = 0;
 uint32_t rng_state;
@@ -191,7 +193,7 @@ void init_display_conn(){
                 |   (0b1u << 13); // Start
 
     const uint8_t init_bytes[] = { 0x00, 0x8D, 0x14, 0xAF, 0xA5 };
-    for (int i = 0; i < init_bytes; i++){
+    for (int i = 0; i < sizeof(init_bytes); i++){
         while ((I2C_ISR_REG >> 0 & 0b1u) == 0){} 
         // See documentation above for charge pump explanation.
         I2C_TXDR_REG = init_bytes[i];
@@ -247,14 +249,13 @@ NOTES generate_note(){
 
 *********************************************************************************************
 */
-struct Settings {
+typedef struct {
 
     uint8_t note_speed;
     uint8_t prog_speed;
+    uint8_t chords_per_prog;
 
-};
-
-typedef struct Settings Settings;
+} Settings;
 
 void note_test(Settings* settings){
     NOTES note;
@@ -286,6 +287,17 @@ void chord_progression(Settings* settings){
         }
         prev_button3 = now_button3;
 
+        uint8_t speed = settings->prog_speed;
+        uint8_t progression_length = rng_next() % settings->chords_per_prog;
+
+        while(exit_prog != 1){
+            if (now_button3 == 0 && prev_button3 == 1){
+                exit_prog = 1;
+            }
+            // Draw current progression chord
+            // sleep(speed);
+        }
+
         if(exit_prog == 1){
             exit_prog = 0;
             return;
@@ -300,6 +312,8 @@ void set_settings(Settings* settings){
             exit_prog = 1;
         }
         prev_button3 = now_button3;
+        // Display current setting 1, let button 1 change, button 2 move to next setting.
+        // setting 2, 3, ...
 
         if(exit_prog == 1){
             exit_prog = 0;
@@ -336,6 +350,7 @@ int main(void){
                     break;
                 case 2:
                     // TODO: draw_string("Settings")
+                    set_settings(settings);
                     break;
             }
             flush_buffer();

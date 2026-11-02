@@ -137,6 +137,18 @@ SECTIONS
         __bss_end__ = _ebss;
     } >RAM
 
+    /* Custom buffer section into RAM */
+    .cbuf (NOLOAD) :
+    {
+        /* Initializing buffer section */
+        . = ALIGN(4);
+        _scbuf = .;
+        *(.cbuf)
+        *(.cbuf*)
+        . = ALIGN(4);
+        _ecbuf = .;
+    } >RAM
+
     /* Heap section used to check if there is enough RAM left */
     ._user_heap_stack :
     {

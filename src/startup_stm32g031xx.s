@@ -20,6 +20,8 @@
     .word _edata
     .word _sbss // same for .bss
     .word _ebss
+    .word _scbuf
+    .word _ecbuf
 
     /* Code that starts immediately upon execution after a reset, eventually leads to a main() routine being called */
     .section .text.Reset_Handler
